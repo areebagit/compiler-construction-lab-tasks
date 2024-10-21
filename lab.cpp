@@ -4,6 +4,9 @@
 #include <cctype>
 #include <string>
 
+#include <fstream> // For file I/O
+#include <sstream> // For string stream
+
 using namespace std;
 
 enum TokenType
@@ -301,19 +304,29 @@ private:
     }
 };
 
-int main()
+int main(int argc, char *argv[])
 {
-    string input = R"(
-        int a;
-        a = 5;
-        int b;
-        b = a + 10;
-        if (b > 10) {
-            return b;
-        } else {
-            return 0;
-        }
-    )";
+    if (argc < 2)
+    {
+        cout << "Usage: " << argv[0] << " <source_file>" << endl;
+        return 1;
+    }
+
+    // Open the file specified in the command line
+    ifstream file(argv[1]);
+    if (!file.is_open())
+    {
+        cout << "Error: Could not open file " << argv[1] << endl;
+        return 1;
+    }
+
+    // Read the entire file content into a string
+    stringstream buffer;
+    buffer << file.rdbuf();
+    string input = buffer.str();
+
+    // Close the file
+    file.close();
 
     Lexer lexer(input);
     vector<Token> tokens = lexer.tokenize();
