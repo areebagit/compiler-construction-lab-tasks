@@ -30,6 +30,10 @@ enum TokenType
     T_GT,
     T_FLT,
     T_EOF,
+    T_DBL,
+    T_STR,
+    T_CHR,
+    T_BOOL,
 };
 
 struct Token
@@ -38,7 +42,6 @@ struct Token
     string value;
     int line; // Add line number
 };
-
 
 class Lexer
 {
@@ -77,11 +80,32 @@ public:
                 continue;
             }
 
+            if (current == '"') // Handle string literals
+            {
+                tokens.push_back(Token{T_STR, consumeString()});
+                continue;
+            }
+
+            if (current == '\'') // Handle char literals
+            {
+                tokens.push_back(Token{T_CHR, consumeChar(), line});
+                continue;
+            }
             if (isalpha(current))
             {
                 string word = consumeWord();
                 if (word == "int")
                     tokens.push_back(Token{T_INT, word, line});
+                else if (word == "string")
+                    tokens.push_back(Token{T_STR, word, line});
+                else if (word == "float")
+                    tokens.push_back(Token{T_FLT, word, line});
+                else if (word == "bool")
+                    tokens.push_back(Token{T_BOOL, word, line});
+                else if (word == "char")
+                    tokens.push_back(Token{T_CHR, word, line});
+                else if (word == "double")
+                    tokens.push_back(Token{T_DBL, word, line});
                 else if (word == "if")
                     tokens.push_back(Token{T_IF, word, line});
                 else if (word == "else")
@@ -142,8 +166,22 @@ public:
     string consumeNumber()
     {
         size_t start = pos;
-        while (pos < src.size() && isdigit(src[pos]))
+        bool hasDot = false;
+
+        while (pos < src.size() && (isdigit(src[pos]) || src[pos] == '.'))
+        {
+            if (src[pos] == '.')
+            {
+                if (hasDot) // If there's more than one dot, it's an invalid float
+                {
+                    cout << "Unexpected character: . at line " << line << endl;
+                    exit(1);
+                }
+                hasDot = true;
+            }
             pos++;
+        }
+
         return src.substr(start, pos - start);
     }
 
@@ -154,8 +192,41 @@ public:
             pos++;
         return src.substr(start, pos - start);
     }
-};
 
+    string consumeString()
+    {
+        pos++; // Skip the opening double quote
+        size_t start = pos;
+        while (pos < src.size() && src[pos] != '"')
+        {
+            pos++;
+        }
+        if (pos >= src.size())
+        {
+            cout << "Unterminated string literal" << endl;
+            exit(1);
+        }
+        string result = src.substr(start, pos - start);
+        pos++; // Skip the closing double quote
+        return result;
+    }
+
+    string consumeChar()
+    {
+        pos++; // Skip the opening single quote
+        if (pos + 1 < src.size() && src[pos + 1] == '\'')
+        {
+            char result = src[pos];
+            pos += 2; // Skip the char and closing quote
+            return string(1, result);
+        }
+        else
+        {
+            cout << "Unexpected char literal format at line " << line << endl;
+            exit(1);
+        }
+    }
+};
 
 class Parser
 {
@@ -182,7 +253,7 @@ private:
 
     void parseStatement()
     {
-        if (tokens[pos].type == T_INT)
+        if ((tokens[pos].type == T_INT) || (tokens[pos].type == T_STR) || (tokens[pos].type == T_FLT) || (tokens[pos].type == T_BOOL) || (tokens[pos].type == T_CHR) || (tokens[pos].type == T_DBL))
         {
             parseDeclaration();
         }
@@ -222,7 +293,11 @@ private:
 
     void parseDeclaration()
     {
-        expect(T_INT);
+        if ((tokens[pos].type == T_INT) || (tokens[pos].type == T_STR) || (tokens[pos].type == T_FLT) || (tokens[pos].type == T_BOOL) || (tokens[pos].type == T_CHR) || (tokens[pos].type == T_DBL))
+        {
+            pos++;
+        }
+
         expect(T_ID);
         expect(T_SEMICOLON);
     }
@@ -283,7 +358,7 @@ private:
 
     void parseFactor()
     {
-        if (tokens[pos].type == T_NUM || tokens[pos].type == T_ID)
+        if (tokens[pos].type == T_NUM || tokens[pos].type == T_ID || tokens[pos].type == T_STR || tokens[pos].type == T_CHR)
         {
             pos++;
         }
@@ -315,7 +390,6 @@ private:
         }
     }
 };
-
 
 int main(int argc, char *argv[])
 {

@@ -1,6 +1,16 @@
 int a;
-a = 5
+a = 5;
 int b;
+float c;
+c = 0.78;
+char g;
+g= 'k';
+bool f;
+f = true;
+string s;
+s = "areeba";
+double d;
+d = 1.45;
 b = a + 10;
 if (b > 10) {
     return b;
